@@ -1,57 +1,120 @@
 ﻿// See https://aka.ms/new-console-template for more information
 
-int globalNumber = RandomInt.getRandomInt();
-int totalTries = 4;
-List<int> numbersEntered = new List<int>();
-int initialLeft = Console.CursorLeft;
-int top = Console.CursorTop;
-while (numbersEntered.Count < totalTries)
+(string, byte)[] modes = new (string, byte)[] { ("easy", 12), ("normal", 8), ("hard", 6), ("hardcore", 4) };
+byte modeNumber = modes[1].Item2;
+if (args.Length > 0)
 {
-    Console.SetCursorPosition(initialLeft, top);// Set the initial Cursor
-    Console.Clear();
-    // Console.WriteLine($"{globalNumber}");
-    Console.Write("History: ");
-    bool findPosition = false;
-    for (int i = 0; i < numbersEntered.Count; i += 1)
+    string[] arg = args[0].Split("=");
+    if (arg[0] == "--mode")
     {
-        int currentVal = numbersEntered[i];
-        if (currentVal < globalNumber)
+        string modeVal;
+        try
         {
-            if (i + 1 == numbersEntered.Count) Console.Write($"{currentVal} - X");
-            else Console.Write($"{currentVal} - ");
+            modeVal = arg[1].Trim().ToLower();
         }
-        else if (currentVal > globalNumber)
+        catch (System.IndexOutOfRangeException)
         {
-            if (!findPosition)
+            Console.WriteLine($"Mode not found! Try --mode={String.Join(",", modes.Select(it => it.Item1))}");
+            return 1;
+        }
+
+        byte? findedLevel = null;
+        foreach ((string, byte) it in modes)
+        {
+            if (it.Item1 == modeVal)
             {
-                findPosition = true;
-                Console.Write($" X - {currentVal} - ");
+                findedLevel = it.Item2;
+                break;
             }
-            else Console.Write($"{currentVal} - ");
         }
-    }
-    Console.WriteLine("\nGuess the number: ");
-    Console.Write("> ");
 
-    string? inputNumber = Console.ReadLine();
-    int parsedNumber;
-
-    if (!int.TryParse(inputNumber, out parsedNumber)) continue;
-    numbersEntered.Add(parsedNumber); // Add the new number
-    numbersEntered.Sort();// Sort the list
-    if (parsedNumber == globalNumber)
-    {
-        Console.WriteLine("Yeah You guess the number!");
-        break;
+        if (findedLevel.HasValue) modeNumber = findedLevel.Value;
+        else
+        {
+            Console.WriteLine($"Mode not found! Try --mode={String.Join(",", modes.Select(it => it.Item1))}");
+            return 1;
+        }
     }
 }
 
-class RandomInt
+new ConsoleApp(modeNumber).Run();// Execute the app using the level provided by the user
+return 0;
+
+struct TerminalUtil
 {
-    public static int getRandomInt()
+    private int CursorTop;
+    private int CursorLeft;
+    public TerminalUtil()
+    {
+        CursorTop = Console.CursorTop;
+        CursorLeft = Console.CursorLeft;
+    }
+    public void Restore()
+    {
+        Console.SetCursorPosition(CursorLeft, CursorTop);
+    }
+}
+
+
+class ConsoleApp
+{
+    private byte TotalCount;
+    private int GuessNumber;
+    public ConsoleApp(byte totalCount)
+    {
+        TotalCount = totalCount;
+        GuessNumber = ConsoleApp.GetRandomInt();
+    }
+    public void Run()
+    {
+        TerminalUtil term = new TerminalUtil();
+        List<int> numbersEntered = new List<int>();
+        while (numbersEntered.Count < TotalCount)
+        {
+            term.Restore();// Set the initial Cursor
+            Console.Clear();
+            Console.WriteLine($"Missing attempts: {TotalCount - numbersEntered.Count}");
+            Console.Write("History: ");
+            bool findPosition = false;
+            for (int i = 0; i < numbersEntered.Count; i += 1)
+            {
+                int currentVal = numbersEntered[i];
+                if (currentVal < GuessNumber)
+                {
+                    if (i + 1 == numbersEntered.Count) Console.Write($"{currentVal} - X");
+                    else Console.Write($"{currentVal} - ");
+                }
+                else if (currentVal > GuessNumber)
+                {
+                    if (!findPosition)
+                    {
+                        findPosition = true;
+                        Console.Write($" X - {currentVal}");
+                    }
+                    else Console.Write($"{currentVal}");
+                    if (i + 1 < numbersEntered.Count) Console.Write(" -");
+                }
+            }
+            Console.WriteLine("\nGuess the number: ");
+            Console.Write("> ");
+
+            string? inputNumber = Console.ReadLine();
+            int parsedNumber;
+
+            if (!int.TryParse(inputNumber, out parsedNumber)) continue;
+            numbersEntered.Add(parsedNumber); // Add the new number
+            numbersEntered.Sort();// Sort the list
+            if (parsedNumber == GuessNumber)
+            {
+                Console.WriteLine("🎉 Yeah! You guess the number!🎉");
+                break;
+            }
+        }
+        if (!numbersEntered.Contains(GuessNumber)) Console.WriteLine("No worries, try again! You'll get it.");
+    }
+    public static int GetRandomInt()
     {
         Random rn = new Random();
         return rn.Next(101);
     }
 }
-
