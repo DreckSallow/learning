@@ -35,3 +35,6 @@ planetToNum planet =
 
 ageOn :: Planet -> Float -> Float
 ageOn planet seconds = seconds / (31557600 * planetToNum planet)
+
+main =
+  print (show (ageOn Venus 1000000000))
